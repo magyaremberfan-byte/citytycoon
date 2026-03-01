@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏙️ City Tycoon</title>
+    <style>
+        :root {
+            --bg-day: #87CEEB;
+            --bg-night: #1a1a2e;
+            --primary: #2c3e50;
+            --accent: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --card: #ffffff;
+            --locked: #95a5a6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, var(--bg-day) 0%, #b8d4e8 100%);
+            margin: 0;
+            padding: 20px;
+            color: var(--primary);
+            transition: background 1s ease;
+            min-height: 100vh;
+        }
+
+        body.night {
+            background: linear-gradient(180deg, var(--bg-night) 0%, #16213e 100%);
+            color: #ecf0f1;
+        }
+
+        /* --- Header Stats --- */
+        .header {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+
+        body.night .header {
+            background: rgba(30,30,50,0.95);
+            color: #ecf0f1;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 10px;
+        }
+
+        body.night .stat-box {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .stat-label { 
+            font-size: 0.75rem; 
+            color: #7f8c8d; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        body.night .stat-label {
+            color: #95a5a6;
+        }
+
+        .stat-value { 
+            font-size: 1.4rem; 
+            font-weight: bold; 
+        }
+
+        #money-val { color: var(--accent); }
+        #happiness-val { color: var(--warning); }
+        #time-val { color: var(--primary); }
+        body.night #time-val { color: #f1c40f; }
+
+        .level-badge {
+            background: var(--primary);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            margin-left: 5px;
+        }
+
+        /* --- Time & Work Status Bar --- */
+        .time-bar {
+            background: rgba(255,255,255,0.95);
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        body.night .time-bar {
+            background: rgba(30,30,50,0.95);
+            color: #ecf0f1;
+        }
+
+        .work-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #95a5a6;
+        }
+
+        .status-indicator.working { background: var(--accent); }
+        .status-indicator.home { background: var(--warning); }
+        .status-indicator.lunch { background: #3498db; }
+        .status-indicator.night { background: #8e44ad; }
+
+        /* --- Main Layout --- */
+        .game-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .game-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* --- City View --- */
+        .city-view {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        body.night .city-view {
+            background: rgba(30,30,50,0.95);
+            color: #ecf0f1;
+        }
+
+        .section-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        body.night .section-title {
+            border-bottom-color: #34495e;
+        }
+
+        .city-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .building-card {
+            background: #ecf0f1;
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            position: relative;
+            animation: popIn 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+        body.night .building-card {
+            background: #34495e;
+            color: #ecf0f1;
+        }
+
+        .building-card.house { border-color: var(--accent); }
+        .building-card.office { border-color: #3498db; }
+
+        .building-icon { font-size: 2.5rem; display: block; margin-bottom: 5px; }
+        .building-name { font-size: 0.85rem; font-weight: bold; margin-bottom: 5px; }
+        .building-info { font-size: 0.7rem; color: #7f8c8d; }
+        body.night .building-info { color: #95a5a6; }
+
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background: #bdc3c7;
+            border-radius: 3px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .worker-count {
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #3498db;
+            margin-top: 5px;
+        }
+
+        /* --- Build Menu --- */
+        .build-menu {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+
+        body.night .build-menu {
+            background: rgba(30,30,50,0.95);
+            color: #ecf0f1;
+        }
+
+        .build-item {
+            border: 1px solid #ecf0f1;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+            transition: all 0.2s;
+        }
+
+        body.night .build-item {
+            border-color: #34495e;
+        }
+
+        .build-item.locked {
+            opacity: 0.5;
+            filter: grayscale(0.8);
+        }
+
+        .build-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .build-name { font-weight: bold; font-size: 0.95rem; }
+        .build-cost { font-weight: bold; }
+        .build-cost.free { color: var(--accent); }
+        .build-cost.paid { color: var(--danger); }
+
+        .build-desc { font-size: 0.75rem; color: #7f8c8d; margin: 5px 0; }
+        body.night .build-desc { color: #95a5a6; }
+
+        .build-stats { 
+            font-size: 0.7rem; 
+            background: rgba(0,0,0,0.05); 
+            padding: 5px; 
+            border-radius: 5px;
+            margin-bottom: 8px;
+        }
+
+        body.night .build-stats {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .build-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            background: var(--primary);
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .build-btn:hover:not(:disabled) { 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .build-btn:disabled { 
+            background: #bdc3c7; 
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .lock-msg {
+            font-size: 0.7rem;
+            color: var(--danger);
+            text-align: center;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        /* --- Happiness Bar --- */
+        .happiness-container {
+            margin-top: 10px;
+        }
+
+        .happiness-bar {
+            width: 100%;
+            height: 10px;
+            background: #ecf0f1;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        body.night .happiness-bar {
+            background: #34495e;
+        }
+
+        .happiness-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--danger), var(--warning), var(--accent));
+            transition: width 0.5s ease;
+        }
+
+        /* --- Toast Notification --- */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 25px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* --- Population Flow Animation --- */
+        .population-flow {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 5px;
+            margin-top: 5px;
+        }
+
+        body.night .population-flow {
+            background: rgba(52, 152, 219, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header Stats -->
+    <div class="header">
+        <div class="stat-box">
+            <div class="stat-label">💰 Money</div>
+            <div class="stat-value" id="money-val">$500</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">😊 Happiness</div>
+            <div class="stat-value" id="happiness-val">100%</div>
+            <div class="happiness-container">
+                <div class="happiness-bar">
+                    <div class="happiness-fill" id="happiness-fill" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">🕐 Time</div>
+            <div class="stat-value" id="time-val">06:00</div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">👥 Population</div>
+            <div class="stat-value"><span id="pop-val">0</span>/<span id="capacity-val">0</span></div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">🏢 Workers</div>
+            <div class="stat-value"><span id="workers-val">0</span>/<span id="office-cap-val">0</span></div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">🏆 Level</div>
+            <div class="stat-value"><span id="level-val">1</span><span class="level-badge">MAYOR</span></div>
+        </div>
+        <div class="stat-box">
+            <div class="stat-label">📈 Income</div>
+            <div class="stat-value" id="income-val">$0/s</div>
+        </div>
+    </div>
+
+    <!-- Time & Work Status Bar -->
+    <div class="time-bar">
+        <div>
+            <strong>📅 Day <span id="day-val">1</span></strong>
+            <span id="time-period" style="margin-left: 15px; font-size: 0.9rem; color: #7f8c8d;">Early Morning</span>
+        </div>
+        <div class="work-status">
+            <div class="status-indicator" id="work-indicator"></div>
+            <span id="work-status-text">No Offices Built</span>
+        </div>
+    </div>
+
+    <!-- Main Game Container -->
+    <div class="game-container">
+        <!-- City View -->
+        <div class="city-view">
+            <h3 class="section-title">
+                <span>🏙️ Your City</span>
+                <span style="font-size: 0.8rem; font-weight: normal;">
+                    Houses: <span id="house-count">0</span> | Offices: <span id="office-count">0</span>
+                </span>
+            </h3>
+            <div class="city-grid" id="city-grid">
+                <div style="grid-column: 1/-1; text-align: center; color: #95a5a6; padding: 50px;">
+                    🏗️ Start building to create your city!
+                </div>
+            </div>
+        </div>
+
+        <!-- Build Menu -->
+        <div class="build-menu">
+            <h3 class="section-title">🔨 Construction Office</h3>
+            <div id="build-list">
+                <!-- Buildings generated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast">Level Up! New buildings unlocked!</div>
+
+    <script>
+        // ==================== GAME CONFIGURATION ====================
+        const CONFIG = {
+            startMoney: 500,
+            level2Threshold: 5,
+            tickRate: 100, // ms per game tick
+            timeSpeed: 1, // 1 real second = 1 game minute
+            buildings: [
+                {
+                    id: 'poor_house',
+                    name: 'Poor House',
+                    icon: '🏚️',
+                    cost: 0,
+                    buildTime: 30,
+                    income: 100,
+                    incomeInterval: 5,
+                    capacity: 5,
+                    type: 'house',
+                    desc: 'A wooden poor house',
+                    reqLevel: 1
+                },
+                {
+                    id: 'better_house',
+                    name: 'Better House',
+                    icon: '🏠',
+                    cost: 300,
+                    buildTime: 10,
+                    income: 500,
+                    incomeInterval: 10,
+                    capacity: 10,
+                    type: 'house',
+                    desc: 'A concrete house (A bit poor yet)',
+                    reqLevel: 1
+                },
+                {
+                    id: 'apartment',
+                    name: 'Apartment',
+                    icon: '🏢',
+                    cost: 750,
+                    buildTime: 20,
+                    income: 860,
+                    incomeInterval: 20,
+                    capacity: 30,
+                    type: 'house',
+                    desc: 'Better apartment (2 floor-only)',
+                    reqLevel: 1
+                },
+                {
+                    id: 'modern_apartment',
+                    name: 'Modern Apartment',
+                    icon: '🏬',
+                    cost: 1800,
+                    buildTime: 30,
+                    income: 1000,
+                    incomeInterval: 10,
+                    capacity: 60,
+                    type: 'house',
+                    desc: 'Modern, complex apartment (3 floor-only)',
+                    reqLevel: 2
+                },
+                {
+                    id: 'office',
+                    name: 'Office House',
+                    icon: '🏢',
+                    cost: 2000,
+                    buildTime: 20,
+                    income: 3200,
+                    incomeInterval: 5,
+                    capacity: 100,
+                    type: 'office',
+                    desc: 'Modern Office (4 floor-only)',
+                    reqLevel: 2
+                }
+            ]
+        };
+
+        // ==================== GAME STATE ====================
+        let state = {
+            money: CONFIG.startMoney,
+            level: 1,
+            totalBuilt: 0,
+            houseCount: 0,
+            officeCount: 0,
+            population: 0,
+            totalCapacity: 0,
+            officeCapacity: 0,
+            workersAtOffice: 0,
+            happiness: 100,
+            gameTime: 6 * 60, // Start at 6:00 AM (in minutes)
+            day: 1,
+            activeBuildings: []
+        };
+
+        // ==================== DOM ELEMENTS ====================
+        const elMoney = document.getElementById('money-val');
+        const elHappiness = document.getElementById('happiness-val');
+        const elHappinessFill = document.getElementById('happiness-fill');
+        const elTime = document.getElementById('time-val');
+        const elDay = document.getElementById('day-val');
+        const elTimePeriod = document.getElementById('time-period');
+        const elWorkIndicator = document.getElementById('work-indicator');
+        const elWorkStatus = document.getElementById('work-status-text');
+        const elPop = document.getElementById('pop-val');
+        const elCapacity = document.getElementById('capacity-val');
+        const elWorkers = document.getElementById('workers-val');
+        const elOfficeCap = document.getElementById('office-cap-val');
+        const elLevel = document.getElementById('level-val');
+        const elIncome = document.getElementById('income-val');
+        const elHouseCount = document.getElementById('house-count');
+        const elOfficeCount = document.getElementById('office-count');
+        const elCity = document.getElementById('city-grid');
+        const elBuildList = document.getElementById('build-list');
+        const elToast = document.getElementById('toast');
+
+        // ==================== INITIALIZATION ====================
+        function init() {
+            renderBuildMenu();
+            updateUI();
+            
+            // Game loop for progress bars
+            setInterval(gameLoop, CONFIG.tickRate);
+            
+            // Time loop (1 second = 1 game minute)
+            setInterval(updateTime, 1000);
+            
+            // Income loop
+            setInterval(checkIncome, 1000);
+            
+            // Worker flow loop
+            setInterval(updateWorkerFlow, 5000);
+        }
+
+        // ==================== CORE LOGIC ====================
+
+        function buyBuilding(buildId) {
+            const building = CONFIG.buildings.find(b => b.id === buildId);
+            
+            if (state.money >= building.cost && state.level >= building.reqLevel) {
+                state.money -= building.cost;
+                
+                const now = Date.now();
+                state.activeBuildings.push({
+                    ...building,
+                    uniqueId: Date.now() + Math.random(),
+                    startTime: now,
+                    finishTime: now + (building.buildTime * 1000),
+                    nextIncomeTime: now + (building.buildTime * 1000)
+                });
+
+                state.totalBuilt++;
+                
+                if (building.type === 'house') {
+                    state.houseCount++;
+                } else {
+                    state.officeCount++;
+                }
+
+                checkLevelUp();
+                updateUI();
+                renderCity();
+                renderBuildMenu();
+            }
+        }
+
+        function checkLevelUp() {
+            if (state.totalBuilt >= CONFIG.level2Threshold && state.level === 1) {
+                state.level = 2;
+                showToast("🎉 Level 2 Unlocked! Modern buildings available!");
+                renderBuildMenu();
+            }
+        }
+
+        function updateTime() {
+            state.gameTime += CONFIG.timeSpeed;
+            
+            if (state.gameTime >= 24 * 60) {
+                state.gameTime = 0;
+                state.day++;
+            }
+
+            updateWorkStatus();
+            updateUI();
+        }
+
+        function getWorkPeriod() {
+            const hour = Math.floor(state.gameTime / 60);
+            const minute = state.gameTime % 60;
+            const time = hour + (minute / 60);
+
+            if (time >= 18 || time < 6) return { name: 'Night (Home)', class: 'night', workerPercent: 0 };
+            if (time >= 6 && time < 6.5) return { name: 'Early Morning', class: 'home', workerPercent: 0 };
+            if (time >= 6.5 && time < 7) return { name: 'Commute Start', class: 'working', workerPercent: 0.2 };
+            if (time >= 7 && time < 8) return { name: 'Morning Rush', class: 'working', workerPercent: 0.5 };
+            if (time >= 8 && time < 12) return { name: 'Work Hours', class: 'working', workerPercent: 0.9 };
+            if (time >= 12 && time < 13) return { name: 'Lunch Break', class: 'lunch', workerPercent: 0.3 };
+            if (time >= 13 && time < 14) return { name: 'After Lunch', class: 'working', workerPercent: 0.7 };
+            if (time >= 14 && time < 17) return { name: 'Afternoon Work', class: 'working', workerPercent: 0.9 };
+            if (time >= 17 && time < 18) return { name: 'Going Home', class: 'home', workerPercent: 0.4 };
+            return { name: 'Night', class: 'night', workerPercent: 0 };
+        }
+
+        function updateWorkStatus() {
+            const period = getWorkPeriod();
+            elTimePeriod.innerText = period.name;
+            elWorkIndicator.className = `status-indicator ${period.class}`;
+
+            if (state.officeCount === 0) {
+                elWorkStatus.innerText = "No Offices Built";
+                state.workersAtOffice = 0;
+            } else {
+                const targetWorkers = Math.floor(state.officeCapacity * period.workerPercent);
+                // Smooth transition
+                if (state.workersAtOffice < targetWorkers) {
+                    state.workersAtOffice = Math.min(targetWorkers, state.workersAtOffice + Math.ceil(state.population * 0.1));
+                } else if (state.workersAtOffice > targetWorkers) {
+                    state.workersAtOffice = Math.max(targetWorkers, state.workersAtOffice - Math.ceil(state.population * 0.1));
+                }
+                elWorkStatus.innerText = `${state.workersAtOffice} workers at office`;
+            }
+        }
+
+        function updateWorkerFlow() {
+            // Recalculate based on current time period
+            updateWorkStatus();
+            updateUI();
+        }
+
+        function checkIncome() {
+            const now = Date.now();
+            let incomeThisTick = 0;
+
+            state.activeBuildings.forEach(b => {
+                if (now >= b.finishTime && now >= b.nextIncomeTime) {
+                    // Offices only make money when workers are present
+                    let multiplier = 1;
+                    if (b.type === 'office') {
+                        multiplier = state.officeCapacity > 0 ? state.workersAtOffice / state.officeCapacity : 0;
+                    }
+
+                    state.money += b.income * multiplier;
+                    incomeThisTick += b.income * multiplier;
+                    b.nextIncomeTime = now + (b.incomeInterval * 1000);
+                }
+            });
+
+            // Calculate happiness
+            calculateHappiness();
+
+            if (incomeThisTick > 0 || true) { // Always update UI
+                updateUI();
+                renderBuildMenu();
+            }
+        }
+
+        function calculateHappiness() {
+            // Happiness based on housing capacity vs population
+            if (state.totalCapacity === 0) {
+                state.happiness = 100;
+                return;
+            }
+
+            const occupancyRate = state.population / state.totalCapacity;
+            
+            if (occupancyRate <= 0.5) {
+                state.happiness = 100; // Plenty of housing
+            } else if (occupancyRate <= 0.8) {
+                state.happiness = 85; // Good
+            } else if (occupancyRate <= 1.0) {
+                state.happiness = 70; // Full but okay
+            } else if (occupancyRate <= 1.2) {
+                state.happiness = 50; // Overcrowded
+            } else if (occupancyRate <= 1.5) {
+                state.happiness = 30; // Very overcrowded
+            } else {
+                state.happiness = 10; // Crisis
+            }
+
+            // Bonus for having jobs
+            if (state.officeCapacity > 0 && state.workersAtOffice > 0) {
+                state.happiness = Math.min(100, state.happiness + 10);
+            }
+        }
+
+        function gameLoop() {
+            const now = Date.now();
+
+            state.activeBuildings.forEach(b => {
+                if (now < b.finishTime) {
+                    const bar = document.getElementById(`prog-${b.uniqueId}`);
+                    if (bar) {
+                        const total = b.finishTime - b.startTime;
+                        const elapsed = now - b.startTime;
+                        const pct = Math.min(100, (elapsed / total) * 100);
+                        bar.style.width = `${pct}%`;
+                    }
+                } else {
+                    const barContainer = document.getElementById(`prog-cont-${b.uniqueId}`);
+                    const btn = document.getElementById(`btn-${b.uniqueId}`);
+                    if (barContainer) barContainer.style.display = 'none';
+                    if (btn) {
+                        btn.innerText = b.type === 'office' ? "Operating" : "Occupied";
+                        btn.disabled = true;
+                        btn.style.background = "#27ae60";
+                    }
+                }
+            });
+        }
+
+        // ==================== RENDERING ====================
+
+        function renderBuildMenu() {
+            elBuildList.innerHTML = '';
+            
+            CONFIG.buildings.forEach(b => {
+                const isLocked = state.level < b.reqLevel;
+                const canAfford = state.money >= b.cost;
+                
+                const div = document.createElement('div');
+                div.className = `build-item ${isLocked ? 'locked' : ''}`;
+                
+                div.innerHTML = `
+                    <div class="build-header">
+                        <span class="build-name">${b.icon} ${b.name}</span>
+                        <span class="build-cost ${b.cost === 0 ? 'free' : 'paid'}">
+                            ${b.cost === 0 ? 'FREE' : '$' + b.cost.toLocaleString()}
+                        </span>
+                    </div>
+                    <div class="build-desc">${b.desc}</div>
+                    <div class="build-stats">
+                        ⏱️ ${b.buildTime}s | 💰 $${b.income}/${b.incomeInterval}s | 👥 ${b.capacity} ${b.type === 'office' ? 'workers' : 'people'}
+                    </div>
+                    ${isLocked ? `<div class="lock-msg">🔒 Requires Level ${b.reqLevel} (${CONFIG.level2Threshold} buildings)</div>` : ''}
+                    <button class="build-btn" 
+                        onclick="buyBuilding('${b.id}')" 
+                        ${isLocked || !canAfford ? 'disabled' : ''}>
+                        ${isLocked ? 'Locked' : (b.cost === 0 ? 'Build Free' : 'Construct')}
+                    </button>
+                `;
+                elBuildList.appendChild(div);
+            });
+        }
+
+        function renderCity() {
+            if (state.activeBuildings.length === 0) {
+                elCity.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #95a5a6; padding: 50px;">🏗️ Start building to create your city!</div>';
+                return;
+            }
+
+            // Clear placeholder if exists
+            if (elCity.children[0] && elCity.children[0].innerText.includes('Start building')) {
+                elCity.innerHTML = '';
+            }
+
+            state.activeBuildings.forEach(b => {
+                if (!document.getElementById(`build-card-${b.uniqueId}`)) {
+                    const card = document.createElement('div');
+                    card.className = `building-card ${b.type}`;
+                    card.id = `build-card-${b.uniqueId}`;
+                    card.innerHTML = `
+                        <span class="building-icon">${b.icon}</span>
+                        <div class="building-name">${b.name}</div>
+                        <div class="building-info">${b.type === 'office' ? '🏢 Office' : '🏠 House'} | 👥 ${b.capacity}</div>
+                        <div class="progress-container" id="prog-cont-${b.uniqueId}">
+                            <div class="progress-bar" id="prog-${b.uniqueId}"></div>
+                        </div>
+                        ${b.type === 'office' ? '<div class="worker-count" id="worker-display-' + b.uniqueId + '">0/100 workers</div>' : ''}
+                        <button id="btn-${b.uniqueId}" style="margin-top:5px; font-size:0.7rem; padding:2px 5px; width:100%; cursor:default;" disabled>Building...</button>
+                    `;
+                    elCity.appendChild(card);
+                }
+            });
+
+            // Update worker displays for offices
+            state.activeBuildings.filter(b => b.type === 'office').forEach(b => {
+                const workerDisplay = document.getElementById(`worker-display-${b.uniqueId}`);
+                if (workerDisplay) {
+                    workerDisplay.innerText = `${Math.floor(b.capacity * (state.workersAtOffice / state.officeCapacity))}/${b.capacity} workers`;
+                }
+            });
+        }
+
+        function updateUI() {
+            // Calculate totals
+            state.totalCapacity = 0;
+            state.officeCapacity = 0;
+            state.population = 0;
+
+            state.activeBuildings.forEach(b => {
+                if (Date.now() >= b.finishTime) {
+                    if (b.type === 'house') {
+                        state.totalCapacity += b.capacity;
+                        state.population += b.capacity; // Houses are always full for simplicity
+                    } else {
+                        state.officeCapacity += b.capacity;
+                    }
+                }
+            });
+
+            // Format time
+            const hours = Math.floor(state.gameTime / 60);
+            const minutes = state.gameTime % 60;
+            const timeString = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+            
+            // Day/Night visual
+            if (hours >= 18 || hours < 6) {
+                document.body.classList.add('night');
+            } else {
+                document.body.classList.remove('night');
+            }
+
+            // Calculate income rate
+            let incomePerSec = 0;
+            state.activeBuildings.forEach(b => {
+                if (Date.now() >= b.finishTime) {
+                    let multiplier = 1;
+                    if (b.type === 'office') {
+                        multiplier = state.officeCapacity > 0 ? state.workersAtOffice / state.officeCapacity : 0;
+                    }
+                    incomePerSec += (b.income / b.incomeInterval) * multiplier;
+                }
+            });
+
+            // Update all displays
+            elMoney.innerText = `$${Math.floor(state.money).toLocaleString()}`;
+            elHappiness.innerText = `${state.happiness}%`;
+            elHappinessFill.style.width = `${state.happiness}%`;
+            elTime.innerText = timeString;
+            elDay.innerText = state.day;
+            elPop.innerText = state.population.toLocaleString();
+            elCapacity.innerText = state.totalCapacity.toLocaleString();
+            elWorkers.innerText = state.workersAtOffice.toLocaleString();
+            elOfficeCap.innerText = state.officeCapacity.toLocaleString();
+            elLevel.innerText = state.level;
+            elIncome.innerText = `$${incomePerSec.toFixed(1)}/s`;
+            elHouseCount.innerText = state.houseCount;
+            elOfficeCount.innerText = state.officeCount;
+
+            // Update city worker displays
+            state.activeBuildings.filter(b => b.type === 'office' && Date.now() >= b.finishTime).forEach(b => {
+                const workerDisplay = document.getElementById(`worker-display-${b.uniqueId}`);
+                if (workerDisplay && state.officeCapacity > 0) {
+                    const workersHere = Math.floor(b.capacity * (state.workersAtOffice / state.officeCapacity));
+                    workerDisplay.innerText = `${workersHere}/${b.capacity} workers`;
+                }
+            });
+        }
+
+        function showToast(msg) {
+            elToast.innerText = msg;
+            elToast.style.opacity = 1;
+            setTimeout(() => { elToast.style.opacity = 0; }, 3000);
+        }
+
+        // ==================== START GAME ====================
+        init();
+    </script>
+</body>
+</html>
